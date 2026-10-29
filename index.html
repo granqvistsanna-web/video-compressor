@@ -412,10 +412,16 @@ $("#clear").addEventListener("click", () => {
 const root = document.documentElement, tbtn = $(".theme-toggle");
 const relabel = () => { tbtn.textContent = root.dataset.theme === "light" ? "Dark" : "Light"; tbtn.setAttribute("aria-label", `Switch to ${tbtn.textContent.toLowerCase()} theme`); };
 relabel();
+/* Pumice's theme switch: the new theme opens as a circle from the toggle (tokens.css draws it) */
 tbtn.addEventListener("click", () => {
-  root.dataset.theme = root.dataset.theme === "light" ? "dark" : "light";
-  try { localStorage.setItem("theme", root.dataset.theme); } catch (e) {}
-  relabel();
+  const next = root.dataset.theme === "light" ? "dark" : "light";
+  try { localStorage.setItem("theme", next); } catch (e) {}
+  const flip = () => { root.dataset.theme = next; relabel(); };
+  if (!document.startViewTransition) return flip();
+  const r = tbtn.getBoundingClientRect();
+  root.style.setProperty("--vt-x", r.left + r.width / 2 + "px");
+  root.style.setProperty("--vt-y", r.top + r.height / 2 + "px");
+  document.startViewTransition(flip);
 });
 </script>
 </body>
