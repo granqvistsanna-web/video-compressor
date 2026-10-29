@@ -32,23 +32,38 @@
   }
   :focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
   svg.i { width: var(--icon); height: var(--icon); flex: none; fill: none; stroke: currentColor; stroke-width: var(--icon-stroke); stroke-linecap: round; stroke-linejoin: round; }
-  .btn svg.i, .back svg.i { width: var(--icon-sm); height: var(--icon-sm); }
+  .btn svg.i { width: var(--icon-sm); height: var(--icon-sm); }
 
+  /* tool content caps at --w-tool; the bar above stays full width */
   .page {
-    margin: 0 auto;
-    padding: 56px max(16px, env(safe-area-inset-right, 0px)) 96px max(16px, env(safe-area-inset-left, 0px));
+    margin: 0 auto; max-width: calc(var(--w-tool) + 2 * var(--gutter));
+    padding: 56px max(var(--gutter), env(safe-area-inset-right, 0px)) 96px max(var(--gutter), env(safe-area-inset-left, 0px));
   }
 
-  header { display: flex; align-items: flex-start; gap: var(--s-7); }
-  .htext { flex: 1; min-width: 0; }
-  .back {
-    display: inline-flex; align-items: center; gap: var(--s-3); margin-bottom: var(--s-8);
-    font-size: 13px; font-weight: 500; color: var(--ink-4); text-decoration: none;
-    transition: color var(--t-color), scale var(--t-press) var(--spring-soft);
-  }
-  .back svg.i { color: var(--ink-3); transition: color var(--t-color); }
-  .back:hover, .back:hover svg.i { color: var(--ink); }
-  .back:active { scale: var(--press-link); }
+  /* Toolbox bar: the same on every tool page. Full width inside --gutter, "Toolbox / tool" left, actions right */
+  .tb-bar { position: sticky; top: 0; z-index: 20; background: var(--frost);
+    -webkit-backdrop-filter: saturate(1.4) blur(12px); backdrop-filter: saturate(1.4) blur(12px); }
+  .tb-bar-in { height: var(--h-topbar); display: flex; align-items: center; gap: var(--s-4);
+    padding-left: max(var(--gutter), env(safe-area-inset-left, 0px)); padding-right: max(var(--gutter), env(safe-area-inset-right, 0px)); }
+  .tb-bar [data-toolbox-home] { --tb-size: 30px; font-size: 15px; }
+  .tb-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 500 15px/1 var(--font-ui); color: var(--ink); }
+  .tb-end { margin-left: auto; display: flex; align-items: center; gap: var(--s-4); flex: none; }
+  .tb-end a { text-decoration: none; }
+  /* Pumice tool button: backdrop grows in on hover; the theme one turns */
+  .tool { position: relative; width: 36px; height: 36px; border: 0; border-radius: var(--r-pill); background: none;
+    color: var(--ink-3); display: grid; place-items: center; cursor: pointer; transition: color var(--t-color); }
+  .tool::before { content: ""; position: absolute; inset: 0; border-radius: inherit; background: rgba(var(--ink-rgb), .08); opacity: 0; scale: .86; transition: opacity 150ms, scale var(--t-press) var(--spring-soft); }
+  .tool:hover { color: var(--ink); }
+  .tool:hover::before, .tool:focus-visible::before { opacity: 1; scale: 1; }
+  .tool > svg { position: relative; transition: scale var(--t-press) var(--spring-soft); }
+  .tool:active > svg { scale: var(--press-icon); transition-duration: 90ms; }
+  .tool.ring { box-shadow: var(--ring); }
+  .theme > svg { transition: scale var(--t-press) var(--spring-soft), rotate 420ms var(--spring); }
+  .theme:hover > svg { rotate: -18deg; }
+  .theme .to-dark { display: none; }
+  :root[data-theme="dark"] .theme .to-light { display: none; }
+  :root[data-theme="dark"] .theme .to-dark { display: block; }
+
   h1 { margin: 0 0 var(--s-4); font-size: 40px; line-height: 1.1; font-weight: 500; letter-spacing: -.02em; color: var(--ink); text-wrap: balance; }
   .lede { margin: 0; font-size: 16px; line-height: 1.55; color: var(--ink-4); max-width: 56ch; }
 
@@ -69,7 +84,6 @@
   .btn.line:hover { opacity: 1; background: rgba(var(--ink-rgb), .05); color: var(--ink); box-shadow: inset 0 0 0 1px rgba(var(--ink-rgb), .28); }
   .btn[disabled] { opacity: .4; cursor: not-allowed; scale: 1; }
 
-  .theme-toggle { margin-top: 44px; }
 
   /* ---- Drop zone ---- */
   .drop {
@@ -144,7 +158,6 @@
   @media (max-width: 560px) {
     .page { padding-top: 32px; }
     h1 { font-size: 32px; }
-    .theme-toggle { margin-top: 40px; }
     .settings { padding-inline: var(--s-7); }
     .setting { flex-wrap: wrap; padding: var(--s-5) 0; }
     .setting .lbl { flex-basis: 100%; }
@@ -161,7 +174,7 @@
   }
   @media (pointer: coarse) {
     .btn, .btn.sm, .seg button { height: var(--h-touch); }
-    .back { min-height: var(--h-touch); margin-bottom: var(--s-4); }
+    .tool { width: var(--h-touch); height: var(--h-touch); }
   }
   @media (prefers-reduced-motion: reduce) { *, *::before { transition-duration: .01ms !important; } }
 </style>
@@ -169,20 +182,26 @@
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
-  <symbol id="i-arrow-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></symbol>
   <symbol id="i-square-play" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="m9 8 6 4-6 4Z"/></symbol>
   <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/></symbol>
 </svg>
+<header class="tb-bar">
+  <div class="tb-bar-in">
+    <a href="https://granqvistsanna-web.github.io/" data-toolbox-home>Toolbox</a><span class="tb-sep" aria-hidden="true">/</span>
+    <span class="tb-name">Video Compressor</span>
+    <div class="tb-end"><button class="tool ring theme" type="button" aria-label="Switch theme">
+        <svg class="i to-light" viewBox="0 0 24 24" style="width:16px;height:16px" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/></svg>
+        <svg class="i to-dark" viewBox="0 0 24 24" style="width:16px;height:16px" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2m-7.07-2.07 1.41-1.41M17.66 6.34l1.41-1.41M2 12h2M20 12h2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41"/></svg>
+      </button>
+      <a class="btn sm" href="https://github.com/granqvistsanna-web/video-compressor"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.4 5.4 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg>GitHub</a></div>
+  </div>
+</header>
 <div class="page">
 
-  <header>
-    <div class="htext">
-      <a class="back" href="https://granqvistsanna-web.github.io/" data-toolbox-home>Toolbox</a>
-      <h1>Video Compressor</h1>
-      <p class="lede">Drop in a video loop, get a lean MP4 out. Resized, with or without sound, under a size you cap it at. Runs in your browser — nothing is uploaded.</p>
-    </div>
-    <button class="btn quiet sm theme-toggle" type="button">Light</button>
-  </header>
+  <div class="intro">
+    <h1>Video Compressor</h1>
+    <p class="lede">Drop in a video loop, get a lean MP4 out. Resized, with or without sound, under a size you cap it at. Runs in your browser — nothing is uploaded.</p>
+  </div>
 
   <div class="drop" id="drop" tabindex="0" role="button" aria-label="Choose videos to compress">
     <svg class="i" aria-hidden="true"><use href="#i-square-play"/></svg>
@@ -409,14 +428,12 @@ $("#clear").addEventListener("click", () => {
 });
 
 /* ---- theme ---- */
-const root = document.documentElement, tbtn = $(".theme-toggle");
-const relabel = () => { tbtn.textContent = root.dataset.theme === "light" ? "Dark" : "Light"; tbtn.setAttribute("aria-label", `Switch to ${tbtn.textContent.toLowerCase()} theme`); };
-relabel();
+const root = document.documentElement, tbtn = $(".theme");
 /* Pumice's theme switch: the new theme opens as a circle from the toggle (tokens.css draws it) */
 tbtn.addEventListener("click", () => {
   const next = root.dataset.theme === "light" ? "dark" : "light";
   try { localStorage.setItem("theme", next); } catch (e) {}
-  const flip = () => { root.dataset.theme = next; relabel(); };
+  const flip = () => { root.dataset.theme = next; };
   if (!document.startViewTransition) return flip();
   const r = tbtn.getBoundingClientRect();
   root.style.setProperty("--vt-x", r.left + r.width / 2 + "px");
