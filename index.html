@@ -6,173 +6,185 @@
 <title>Video Compressor</title>
 <meta name="description" content="Shrink video loops for the web: MP4 out, resized, with or without sound, under a size you choose. Runs in your browser, nothing is uploaded.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22><rect width=%2264%22 height=%2264%22 rx=%2214%22 fill=%22%230f0f0f%22/><path d=%22M24 20 L46 32 L24 44 Z%22 fill=%22%23f2f2f2%22/></svg>">
-<link rel="stylesheet" href="https://granqvistsanna-web.github.io/graphite-console/tokens.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300..700&display=swap">
+<link rel="stylesheet" href="https://granqvistsanna-web.github.io/pumice/tokens.css">
 <script>
+  /* Set the theme before first paint: a stored choice wins, otherwise the system's. */
   (function () {
-    try {
-      var t = localStorage.getItem("theme");
-      if (t === "light" || t === "dark") document.documentElement.dataset.theme = t;
-    } catch (e) {}
+    var t;
+    try { t = localStorage.getItem("theme"); } catch (e) {}
+    if (t !== "light" && t !== "dark") t = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    document.documentElement.dataset.theme = t;
   })();
 </script>
 <style>
-  /* Graphite Console — https://granqvistsanna-web.github.io/graphite-console/
-     Dark by default; light is the same local override the Toolbox uses. */
-  html { color-scheme: dark; }
-  :root[data-theme="light"] {
-    color-scheme: light;
-    --bg-0: #ffffff; --bg-1: #f4f4f4; --bg-2: #ebebeb; --bg-3: #e0e0e0; --bg-4: #d4d4d4;
-    --hairline: rgba(0,0,0,.10);
-    --ink-hi: #121212; --ink-mid: #4b4b4b; --ink-low: #636363; --ink-faint: #6d6d6d;
-    --inverse-bg: #101010; --inverse-ink: #ffffff;
-  }
-
+  /* Pumice — https://granqvistsanna-web.github.io/pumice/
+     Tokens and both themes come from tokens.css; this sheet only lays the page out with them. */
+  html { color-scheme: light; }
   * { box-sizing: border-box; }
   body {
-    margin: 0;
-    background: var(--bg-0, #0f0f0f);
-    color: var(--ink-mid, #b3b3b3);
-    font-family: var(--font-ui, -apple-system, sans-serif);
-    font-size: 15px; line-height: 1.55;
+    margin: 0; background: var(--bg); color: var(--ink-2);
+    font: 400 15px/1.5 var(--font-ui);
     -webkit-font-smoothing: antialiased;
+    transition: background-color var(--t-fade), color var(--t-color);
   }
-  .page { max-width: 720px; margin: 0 auto; padding: 56px 20px 96px; }
+  :focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
+  svg.i { width: var(--icon); height: var(--icon); flex: none; fill: none; stroke: currentColor; stroke-width: var(--icon-stroke); stroke-linecap: round; stroke-linejoin: round; }
+  .btn svg.i, .back svg.i { width: var(--icon-sm); height: var(--icon-sm); }
 
-  header { display: flex; align-items: flex-start; gap: 16px; }
+  .page {
+    max-width: 720px; margin: 0 auto;
+    padding: 56px max(16px, env(safe-area-inset-right, 0px)) 96px max(16px, env(safe-area-inset-left, 0px));
+  }
+
+  header { display: flex; align-items: flex-start; gap: var(--s-7); }
   .htext { flex: 1; min-width: 0; }
   .back {
-    display: inline-flex; align-items: center; gap: 6px; margin-bottom: 20px;
-    font-size: 13px; font-weight: 500; color: var(--ink-low); text-decoration: none;
+    display: inline-flex; align-items: center; gap: var(--s-3); margin-bottom: var(--s-8);
+    font-size: 13px; font-weight: 500; color: var(--ink-4); text-decoration: none;
+    transition: color var(--t-color), scale var(--t-press) var(--spring-soft);
   }
-  .back:hover { color: var(--ink-hi); }
-  .back:focus-visible { outline: 2px solid var(--ink-low); outline-offset: 2px; border-radius: var(--r-xs); }
-  h1 { color: var(--ink-hi); font-size: 28px; font-weight: 700; letter-spacing: -0.015em; line-height: 1.1; margin: 0 0 8px; }
-  .lede { margin: 0; font-size: 14.5px; color: var(--ink-low); max-width: 56ch; }
+  .back svg.i { color: var(--ink-3); transition: color var(--t-color); }
+  .back:hover, .back:hover svg.i { color: var(--ink); }
+  .back:active { scale: var(--press-link); }
+  h1 { margin: 0 0 var(--s-4); font-size: 40px; line-height: 1.1; font-weight: 500; letter-spacing: -.02em; color: var(--ink); text-wrap: balance; }
+  .lede { margin: 0; font-size: 16px; line-height: 1.55; color: var(--ink-4); max-width: 56ch; }
 
-  .theme-toggle {
-    flex-shrink: 0; margin-top: 38px; height: 36px; padding: 0 14px;
-    background: var(--bg-2); color: var(--ink-mid);
-    border: 1px solid var(--hairline); border-radius: var(--r-pill);
-    font: 500 13px/1 var(--font-ui); cursor: pointer;
+  /* ---- Buttons ---- */
+  .btn {
+    height: var(--h-button); padding: 0 20px; border: 0; border-radius: var(--r-pill);
+    background: var(--ink); color: var(--on-ink);
+    font: 500 15px/1 var(--font-ui); cursor: pointer; white-space: nowrap; flex-shrink: 0;
+    display: inline-flex; align-items: center; justify-content: center; gap: var(--s-4);
+    transition: opacity var(--t-fade), scale var(--t-press) var(--spring-soft), background var(--t-color), color var(--t-color), box-shadow var(--t-color);
   }
-  .theme-toggle:hover { background: var(--bg-3); color: var(--ink-hi); }
-  .theme-toggle:focus-visible { outline: 2px solid var(--ink-low); outline-offset: 2px; }
+  .btn:hover { opacity: .86; }
+  .btn:active { scale: var(--press); }
+  .btn.sm { height: var(--h-nav); padding: 0 16px; font-size: 14px; }
+  .btn.quiet { background: var(--wash); color: var(--ink); }
+  .btn.quiet:hover { opacity: 1; background: var(--wash-2); }
+  .btn.line { background: none; color: var(--ink-2); box-shadow: inset 0 0 0 1px var(--line-ctl); }
+  .btn.line:hover { opacity: 1; background: rgba(var(--ink-rgb), .05); color: var(--ink); box-shadow: inset 0 0 0 1px rgba(var(--ink-rgb), .28); }
+  .btn[disabled] { opacity: .4; cursor: not-allowed; scale: 1; }
+
+  .theme-toggle { margin-top: 44px; }
 
   /* ---- Drop zone ---- */
   .drop {
-    margin-top: 32px;
-    display: flex; flex-direction: column; align-items: center; gap: 6px;
-    background: var(--bg-1);
-    border: 1px dashed var(--bg-4);
-    border-radius: var(--r-xl);
-    padding: 48px 20px; text-align: center; cursor: pointer;
-    transition: border-color var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
+    margin-top: var(--s-10);
+    display: flex; flex-direction: column; align-items: center; gap: var(--s-2);
+    background: var(--wash); border-radius: var(--r-card);
+    padding: var(--s-12) var(--s-8); text-align: center; cursor: pointer;
+    transition: background var(--t-color), scale var(--t-press) var(--spring-soft);
   }
-  .drop.over { border-color: var(--ink-low); background: var(--bg-2); }
-  .drop:focus-visible { outline: 2px solid var(--ink-low); outline-offset: 2px; }
-  .drop svg { width: 32px; height: 32px; color: var(--ink-low); margin-bottom: 8px; fill: currentColor; }
-  .drop .big { font-size: 16px; font-weight: 600; color: var(--ink-hi); }
-  .drop .small { font-size: 13px; color: var(--ink-low); }
+  .drop:hover { background: var(--wash-2); }
+  .drop.over { background: var(--wash-2); scale: 1.01; }
+  .drop svg.i { width: var(--icon-lg); height: var(--icon-lg); color: var(--ink-3); margin-bottom: var(--s-4); transition: color var(--t-color); }
+  .drop:hover svg.i, .drop.over svg.i { color: var(--ink); }
+  .drop .big { font-size: 16px; font-weight: 500; color: var(--ink); }
+  .drop .small { font-size: 13px; color: var(--ink-4); }
 
   /* ---- Settings ---- */
-  .settings {
-    margin-top: 12px; background: var(--bg-1); border-radius: var(--r-lg);
-    padding: 6px var(--pad-control);
-  }
-  .setting { display: flex; align-items: center; gap: 12px; min-height: var(--row-h); padding: 6px 0; }
+  .settings { margin-top: var(--s-6); background: var(--wash); border-radius: var(--r-card); padding: var(--s-3) var(--s-8); }
+  .setting { display: flex; align-items: center; gap: var(--s-6); min-height: calc(var(--h-row) + 12px); padding: var(--s-3) 0; }
   .setting + .setting { border-top: 1px solid var(--hairline); }
-  .setting .lbl { flex: 1; font-size: 14.5px; color: var(--ink-mid); }
-  .setting .lbl small { display: block; font-size: 12.5px; color: var(--ink-low); }
-  .seg { display: inline-flex; background: var(--bg-2); border-radius: var(--r-sm); padding: 3px; gap: 2px; flex-wrap: wrap; }
+  .setting .lbl { flex: 1; font-size: 14px; line-height: 1.4; font-weight: 500; color: var(--ink); }
+  .setting .lbl small { display: block; font-size: 13px; line-height: 1.5; font-weight: 400; color: var(--ink-4); }
+  .seg { display: inline-flex; padding: var(--s-1); gap: var(--s-1); border-radius: var(--r-pill); background: var(--wash); }
   .seg button {
-    font: 500 13px/1 var(--font-ui); color: var(--ink-low);
-    background: transparent; border: 0; border-radius: var(--r-xs);
-    height: 30px; padding: 0 11px; cursor: pointer; white-space: nowrap;
-    font-variant-numeric: tabular-nums;
-    transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+    height: 32px; padding: 0 14px; border: 0; border-radius: var(--r-pill);
+    background: transparent; color: var(--ink-4); font: 500 13px/1 var(--font-ui);
+    cursor: pointer; white-space: nowrap; font-variant-numeric: tabular-nums;
+    transition: background var(--t-color), color var(--t-color), scale var(--t-press) var(--spring-soft);
   }
-  .seg button:hover { color: var(--ink-hi); }
-  .seg button[aria-pressed="true"] { background: var(--bg-4); color: var(--ink-hi); }
-  .seg button:focus-visible { outline: 2px solid var(--ink-low); outline-offset: 1px; }
+  .seg button:hover { color: var(--ink); }
+  .seg button:active { scale: var(--press-chip); }
+  .seg button[aria-pressed="true"] { background: var(--elev); color: var(--ink); box-shadow: var(--shadow-1); }
 
   .notice {
-    display: none; margin-top: 12px; padding: 14px 16px;
-    background: var(--bg-1); border: 1px solid var(--hairline); border-radius: var(--r-md);
-    font-size: 13.5px; color: var(--ink-hi);
+    display: none; margin-top: var(--s-6); padding: 14px var(--s-8);
+    background: var(--wash); border-radius: var(--r-card);
+    font-size: 14px; color: var(--ink);
   }
 
   /* ---- Files ---- */
-  .list { margin-top: 20px; display: flex; flex-direction: column; gap: 8px; }
-  .item {
-    display: flex; align-items: center; gap: 14px;
-    background: var(--bg-1); border-radius: var(--r-md); padding: 10px 12px;
-  }
-  .thumb {
-    width: 56px; height: 56px; flex-shrink: 0; border-radius: var(--r-sm);
-    background: var(--bg-2); object-fit: cover; display: block;
-  }
+  .list { margin-top: var(--s-8); display: flex; flex-direction: column; gap: var(--s-4); }
+  .item { display: flex; align-items: center; gap: var(--s-6); background: var(--wash); border-radius: var(--r-card); padding: var(--s-6) var(--s-7) var(--s-6) var(--s-6); }
+  .thumb { width: 56px; height: 56px; flex-shrink: 0; border-radius: 16px; background: var(--wash); object-fit: cover; display: block; }
   .info { flex: 1; min-width: 0; }
-  .name { font-size: 14px; font-weight: 500; color: var(--ink-hi); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .name { font-size: 14px; line-height: 1.4; font-weight: 500; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .sizes {
-    margin-top: 3px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-    font-size: 12.5px; color: var(--ink-low); font-variant-numeric: tabular-nums;
+    margin-top: var(--s-1); display: flex; align-items: center; gap: var(--s-4); flex-wrap: wrap;
+    font-size: 13px; line-height: 1.5; color: var(--ink-4); font-variant-numeric: tabular-nums;
   }
-  .pill { border-radius: var(--r-pill); font-size: 11.5px; font-weight: 650; padding: 2px 8px; }
-  .pill.save { background: var(--inverse-bg); color: var(--inverse-ink); }
-  .pill.grow { background: var(--bg-3); color: var(--ink-mid); }
-  .progress { margin-top: 8px; height: 4px; border-radius: 2px; background: var(--bg-3); overflow: hidden; }
-  .progress i { display: block; height: 100%; width: 0; background: var(--ink-hi); transition: width var(--t-med) var(--ease); }
-  .err { color: var(--ink-hi); }
+  .pill { height: var(--h-tag); padding: 0 10px; border-radius: var(--r-pill); display: inline-flex; align-items: center; font-size: 11px; line-height: 1; font-weight: 500; letter-spacing: .01em; }
+  .pill.save { background: var(--ink); color: var(--on-ink); }
+  .pill.grow { background: var(--wash); color: var(--ink-2); }
+  .progress { margin-top: var(--s-4); height: 4px; border-radius: var(--r-pill); background: var(--wash); overflow: hidden; }
+  .progress i { display: block; height: 100%; width: 0; background: var(--ink); border-radius: inherit; transition: width var(--t-move) var(--settle); }
+  .err { color: var(--ink); }
 
-  button.btn {
-    font: 500 13px/1 var(--font-ui); color: var(--ink-mid);
-    background: var(--bg-2); border: 0; border-radius: var(--r-sm);
-    height: 36px; padding: 0 14px; cursor: pointer; white-space: nowrap; flex-shrink: 0;
-    transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
-  }
-  button.btn:hover { background: var(--bg-3); color: var(--ink-hi); }
-  button.btn:focus-visible { outline: 2px solid var(--ink-low); outline-offset: 2px; }
-  button.btn.primary { background: var(--inverse-bg); color: var(--inverse-ink); font-weight: 600; height: 40px; }
-  button.btn:disabled { opacity: .4; cursor: default; }
-
+  /* ---- Sticky action bar: floats, so it gets the lift ---- */
   .bar {
-    position: sticky; bottom: 12px; margin-top: 16px;
-    display: none; align-items: center; gap: 10px;
-    background: var(--bg-1); border: 1px solid var(--hairline); border-radius: var(--r-lg);
-    padding: 10px 12px 10px 16px;
+    position: sticky; bottom: 12px; margin-top: var(--s-7);
+    display: none; align-items: center; gap: var(--s-4); flex-wrap: wrap;
+    background: var(--frost); box-shadow: var(--lift); border-radius: var(--r-card);
+    backdrop-filter: saturate(1.4) blur(12px); -webkit-backdrop-filter: saturate(1.4) blur(12px);
+    padding: var(--s-3) var(--s-3) var(--s-3) var(--s-8);
   }
-  .bar .total { flex: 1; font-size: 13px; color: var(--ink-low); font-variant-numeric: tabular-nums; }
+  .bar .total { flex: 1; min-width: 0; font-size: 13px; line-height: 1.5; color: var(--ink-4); font-variant-numeric: tabular-nums; }
 
-  .notes { margin-top: 48px; padding-top: 16px; border-top: 1px solid var(--hairline); font-size: 13px; color: var(--ink-low); }
-  .notes p { margin: 0 0 8px; max-width: 64ch; }
-  .notes a { color: var(--ink-mid); }
-  .notes a:hover { color: var(--ink-hi); }
+  .notes { margin-top: var(--s-12); padding-top: var(--s-7); border-top: 1px solid var(--hairline); font-size: 13px; line-height: 1.5; color: var(--ink-4); }
+  .notes p { margin: 0 0 var(--s-4); max-width: 64ch; }
+  .notes a { color: var(--ink-2); text-underline-offset: 2px; transition: color var(--t-color); }
+  .notes a:hover { color: var(--ink); }
 
   @media (max-width: 560px) {
     .page { padding-top: 32px; }
-    .setting { flex-wrap: wrap; padding: 10px 0; }
+    h1 { font-size: 32px; }
+    .theme-toggle { margin-top: 40px; }
+    .settings { padding-inline: var(--s-7); }
+    .setting { flex-wrap: wrap; padding: var(--s-5) 0; }
     .setting .lbl { flex-basis: 100%; }
-    .item { flex-wrap: wrap; }
-    .item .info { flex-basis: calc(100% - 70px); }
-    .item .btn { margin-left: 70px; }
+    /* Too many options for one pill at phone width: the segment opens up into a wrapping chip row. */
+    .seg { flex-wrap: wrap; gap: var(--s-3); padding: 0; background: none; }
+    .seg button { background: var(--wash); color: var(--ink-2); }
+    .seg button[aria-pressed="true"] { background: var(--ink); color: var(--on-ink); box-shadow: none; }
+    .item { flex-wrap: wrap; padding-right: var(--s-6); }
+    .item .info { flex-basis: calc(100% - 68px); }
+    .item .btn { margin-left: 68px; }
+    .bar { padding: var(--s-3); }
+    .bar .total { flex-basis: 100%; padding: var(--s-2) var(--s-5) 0; }
+    .bar .btn { flex: 1; }
   }
-  @media (prefers-reduced-motion: reduce) { * { transition-duration: 0.01ms !important; } }
+  @media (pointer: coarse) {
+    .btn, .btn.sm, .seg button { height: var(--h-touch); }
+    .back { min-height: var(--h-touch); margin-bottom: var(--s-4); }
+  }
+  @media (prefers-reduced-motion: reduce) { *, *::before { transition-duration: .01ms !important; } }
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-arrow-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></symbol>
+  <symbol id="i-square-play" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="m9 8 6 4-6 4Z"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/></symbol>
+</svg>
 <div class="page">
 
   <header>
     <div class="htext">
-      <a class="back" href="https://granqvistsanna-web.github.io/">← Toolbox</a>
+      <a class="back" href="https://granqvistsanna-web.github.io/"><svg class="i"><use href="#i-arrow-left"/></svg>Toolbox</a>
       <h1>Video Compressor</h1>
       <p class="lede">Drop in a video loop, get a lean MP4 out. Resized, with or without sound, under a size you cap it at. Runs in your browser — nothing is uploaded.</p>
     </div>
-    <button class="theme-toggle" type="button">Light</button>
+    <button class="btn quiet sm theme-toggle" type="button">Light</button>
   </header>
 
   <div class="drop" id="drop" tabindex="0" role="button" aria-label="Choose videos to compress">
-    <svg viewBox="0 0 256 256" aria-hidden="true"><path d="M216,40H40A16,16,0,0,0,24,56V200a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A16,16,0,0,0,216,40ZM164.44,134.66l-48,32A8,8,0,0,1,104,160V96a8,8,0,0,1,12.44-6.66l48,32a8,8,0,0,1,0,13.32Z"/></svg>
+    <svg class="i" aria-hidden="true"><use href="#i-square-play"/></svg>
     <span class="big">Drop videos here</span>
     <span class="small">or click to choose · MP4, MOV, WebM</span>
     <input type="file" id="file" accept="video/*" multiple hidden>
@@ -214,8 +226,8 @@
 
   <div class="bar" id="bar">
     <span class="total" id="total"></span>
-    <button type="button" class="btn" id="clear">Clear</button>
-    <button type="button" class="btn primary" id="all" disabled>Download all</button>
+    <button type="button" class="btn line sm" id="clear">Clear</button>
+    <button type="button" class="btn sm" id="all" disabled><svg class="i" aria-hidden="true"><use href="#i-download"/></svg>Download all</button>
   </div>
 
   <div class="notes">
@@ -337,7 +349,7 @@ function addRow(file, index) {
       <div class="sizes"><span>${mb(file.size)}</span><span class="state">Waiting…</span></div>
       <div class="progress"><i></i></div>
     </div>
-    <button type="button" class="btn" disabled>Download</button>`;
+    <button type="button" class="btn quiet sm" disabled><svg class="i" aria-hidden="true"><use href="#i-download"/></svg>Download</button>`;
   const thumb = el.querySelector(".thumb"), bar = el.querySelector(".progress i"), state = el.querySelector(".state"), btn = el.querySelector(".btn");
   thumb.src = URL.createObjectURL(file);
   el.addEventListener("pointerenter", () => thumb.play().catch(() => {}));
