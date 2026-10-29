@@ -94,9 +94,18 @@
     transition: background var(--t-color), scale var(--t-press) var(--spring-soft);
   }
   .drop:hover { background: var(--wash-2); }
-  .drop.over { background: var(--wash-2); scale: 1.01; }
   .drop svg.i { width: var(--icon-lg); height: var(--icon-lg); color: var(--ink-3); margin-bottom: var(--s-4); transition: color var(--t-color); }
-  .drop:hover svg.i, .drop.over svg.i { color: var(--ink); }
+  .drop:hover svg.i { color: var(--ink); }
+
+  /* Dropzone: lifts its icon while a file hovers, gulps what it takes, shakes off what it refuses */
+  .drop svg.i { transition: color var(--t-color), translate var(--t-press) var(--spring); }
+  .drop.over { background: var(--wash-2); box-shadow: inset 0 0 0 2px var(--rule); scale: 1.01; }
+  .drop.over svg.i { color: var(--ink); translate: 0 -5px; }
+  .drop.took { animation: drop-took 420ms var(--spring-soft); }
+  .drop.nope { animation: drop-nope 380ms var(--settle); }
+  .drop .small.say { color: var(--ink); }
+  @keyframes drop-took { 35% { scale: .975; } }
+  @keyframes drop-nope { 18% { translate: -7px; } 36% { translate: 6px; } 54% { translate: -4px; } 72% { translate: 2px; } }
   .drop .big { font-size: 16px; font-weight: 500; color: var(--ink); }
   .drop .small { font-size: 13px; color: var(--ink-4); }
 
@@ -176,7 +185,7 @@
     .btn, .btn.sm, .seg button { height: var(--h-touch); }
     .tool { width: var(--h-touch); height: var(--h-touch); }
   }
-  @media (prefers-reduced-motion: reduce) { *, *::before { transition-duration: .01ms !important; } }
+  @media (prefers-reduced-motion: reduce) { *, *::before { transition-duration: .01ms !important; } .drop.took, .drop.nope { animation: none; } }
 </style>
 <script src="https://granqvistsanna-web.github.io/mascot.js" defer></script>
 </head>
@@ -392,10 +401,21 @@ function addRow(file, index) {
   };
 }
 
+
+function nudge(el, cls, ms) { clearTimeout(el._nudge); el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); el._nudge = setTimeout(function () { el.classList.remove(cls); }, ms || 600); }
+const say = drop.querySelector(".small"), sayText = say.textContent;
+let sayT;
 function addFiles(files) {
   if (!canAvc) return;
-  for (const file of files) {
-    if (!file.type.startsWith("video/") && !/\.(mp4|mov|m4v|webm|mkv)$/i.test(file.name)) continue;
+  const all = [...files], ok = all.filter((f) => f.type.startsWith("video/") || /\.(mp4|mov|m4v|webm|mkv)$/i.test(f.name));
+  // the drop zone answers: a gulp for what it takes, a shake and a reason for what it can't
+  if (all.length) nudge(drop, ok.length ? "took" : "nope", 450);
+  if (ok.length < all.length) {
+    say.textContent = ok.length ? `Skipped ${all.length - ok.length} — videos only` : "Videos only: MP4, MOV, WebM";
+    say.classList.add("say");
+    clearTimeout(sayT); sayT = setTimeout(() => { say.textContent = sayText; say.classList.remove("say"); }, 2600);
+  }
+  for (const file of ok) {
     const index = results.length; results.push(null);
     const row = addRow(file, index), opts = { ...settings };
     updateBar();
